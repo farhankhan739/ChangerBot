@@ -1,0 +1,8 @@
+{
+  "replacement_rules": [
+    { "old": "@OldUsername", "new": "@NewUsername" },
+    { "old": "OldBrandText", "new": "NewBrandText" }
+  ],
+  "max_retries": 5,
+  "retry_base_delay": 2.0
+}
