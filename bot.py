@@ -410,6 +410,21 @@ class CaptionBot:
                 log.info(f"Resuming after FloodWait for message {original_msg.message_id}.")
                 continue  # never skip — retry same item
 
+            except BadRequest as e:
+                # Non-recoverable for this item (e.g. invalid file reference,
+                # wrong/unauthorized chat ID, bot not admin in target chat).
+                # NOTE: BadRequest must be caught BEFORE TimedOut/NetworkError
+                # below, since BadRequest is a subclass of NetworkError in
+                # python-telegram-bot — catching the parent first would
+                # swallow BadRequest and trigger pointless retry/backoff.
+                self.stats.failed += 1
+                log.error(
+                    f"BadRequest on message {original_msg.message_id}: {e}. "
+                    f"Check STORAGE_CHANNEL_ID is correct and the bot is an admin "
+                    f"with post permission in that channel."
+                )
+                return
+
             except (TimedOut, NetworkError) as e:
                 if attempt > self.config.max_retries:
                     self.stats.failed += 1
@@ -421,12 +436,6 @@ class CaptionBot:
                             f"(attempt {attempt}): {e}. Retrying in {delay:.1f}s.")
                 await asyncio.sleep(delay)
                 continue
-
-            except BadRequest as e:
-                # Non-recoverable for this item (e.g. invalid file reference) — log and move on
-                self.stats.failed += 1
-                log.error(f"BadRequest on message {original_msg.message_id}: {e}")
-                return
 
             except TelegramError as e:
                 if attempt > self.config.max_retries:
