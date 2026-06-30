@@ -1,6 +1,6 @@
 {
   "replacement_rules": [
-    { "old": "@OldUsername", "new": "@NewUsername" },
+    { "old": "@Anime_Acadmia", "new": "@AnimeStreet1" },
     { "old": "OldBrandText", "new": "NewBrandText" }
   ],
   "max_retries": 5,
