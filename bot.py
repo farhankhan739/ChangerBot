@@ -160,7 +160,11 @@ def replace_in_caption(
     u16 = [caption.encode("utf-16-le")[i:i + 2] for i in range(0, len(caption.encode("utf-16-le")), 2)]
 
     modified = False
-    new_entities = [MessageEntity(**e.to_dict()) for e in entities] if entities else []
+    # Track offset/length as plain mutable dicts since MessageEntity is immutable
+    working_entities = (
+        [{"offset": e.offset, "length": e.length, "src": e} for e in entities]
+        if entities else []
+    )
 
     for rule in rules:
         if not rule.old:
@@ -186,18 +190,31 @@ def replace_in_caption(
 
             delta = new_len - old_len
 
-            # Shift entities that come after the replacement point
-            for ent in new_entities:
-                if ent.offset >= idx + old_len:
-                    ent.offset += delta
-                elif ent.offset <= idx < ent.offset + ent.length:
+            # Shift entity offsets/lengths that come after or contain the replacement point
+            for ent in working_entities:
+                if ent["offset"] >= idx + old_len:
+                    ent["offset"] += delta
+                elif ent["offset"] <= idx < ent["offset"] + ent["length"]:
                     # Replacement happens inside this entity's span — extend it
-                    ent.length += delta
+                    ent["length"] += delta
 
             search_pos = idx + new_len
 
     new_caption = b"".join(u16).decode("utf-16-le")
-    return new_caption, (new_entities or None), modified
+
+    new_entities = None
+    if working_entities:
+        new_entities = []
+        for ent in working_entities:
+            src = ent["src"]
+            # Rebuild a fresh MessageEntity with updated offset/length,
+            # carrying over any type-specific fields (url, user, language, etc.)
+            kwargs = src.to_dict()
+            kwargs["offset"] = ent["offset"]
+            kwargs["length"] = ent["length"]
+            new_entities.append(MessageEntity(**kwargs))
+
+    return new_caption, new_entities, modified
 
 
 # --------------------------------------------------------------------------- #
