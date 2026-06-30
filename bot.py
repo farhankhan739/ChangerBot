@@ -455,7 +455,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     log.info(f"File received: message {msg.message_id} from chat {msg.chat_id}")
     position = await bot_state.enqueue(msg)
-    await msg.reply_text(f"Queued (#{position} in line) ✅", quote=False)
+    await msg.reply_text(f"Queued (#{position} in line) ✅")
 
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
